@@ -31,6 +31,9 @@
   (state amqp-connection-state-t)
   (code :int))
 
+(cffi:defcfun ("amqp_get_channel_max" amqp-get-channel-max) :int
+  (state amqp-connection-state-t))
+
 (cffi:defcfun ("amqp_destroy_connection" amqp-destroy-connection) :int
   (state amqp-connection-state-t))
 

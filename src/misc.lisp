@@ -107,12 +107,43 @@
     (:amqp-field-kind-f32 . value-f32)
     (:amqp-field-kind-f64 . value-f64)
     (:amqp-field-kind-decimal . value-decimal)
-    (:amqp-field-kind-utf8 . value-utf8)
+    (:amqp-field-kind-utf8 . value-bytes)
     (:amqp-field-kind-array . value-array)
     (:amqp-field-kind-timestamp . value-timestamp)
     (:amqp-field-kind-table . value-table)
     (:amqp-field-kind-void . value-void)
     (:amqp-field-kind-bytes . value-bytes)))
+
+(defun create-amqp-table (values)
+  (let ((length (length values))
+        (allocated-values nil))
+
+    (labels ((string-native (string)
+               (let* ((utf (babel:string-to-octets string :encoding :utf-8))
+                      (ptr (array-to-foreign-char-array utf)))
+                 (push ptr allocated-values)
+                 (list 'len (array-dimension utf 0) 'bytes ptr)))
+
+             (typed-value (type value)
+               (let ((struct-entry-name (cdr (assoc type *field-kind-types*))))
+                 (unless struct-entry-name
+                   (error "Illegal kind: ~s" type))
+                 (list 'kind (cffi:foreign-enum-value 'amqp-field-value-kind-t type) struct-entry-name value)))
+
+             (make-field-value (value)
+               (etypecase value
+                 (string (typed-value :amqp-field-kind-utf8 (string-native value)))
+                 ((integer #.(- (expt 2 31)) #.(1- (expt 2 31))) (typed-value :amqp-field-kind-i32 value))
+                 )))
+
+      (cffi:with-foreign-objects ((content '(:struct amqp-table-entry-t) length))
+        (loop
+          for (key . value) in values
+          for i from 0
+          do (setf (cffi:mem-aref content '(:struct amqp-table-entry-t) i)
+                   (list 'key (string-native key) 'value (make-field-value value))))
+        (let ((content-struct (list 'num-entries length 'entries content)))
+          (values content-struct allocated-values))))))
 
 (defun call-with-amqp-table (fn values)
   (let ((length (length values))
@@ -132,8 +163,9 @@
 
              (make-field-value (value)
                (etypecase value
-                 (string (typed-value :amqp-field-kind-bytes (string-native value)))
-                 ((integer #.(- (expt 2 31)) #.(1- (expt 2 31))) (typed-value :amqp-field-kind-i32 value)))))
+                 (string (typed-value :amqp-field-kind-utf8 (string-native value)))
+                 ((integer #.(- (expt 2 31)) #.(1- (expt 2 31))) (typed-value :amqp-field-kind-i32 value))
+                 )))
 
       (unwind-protect
            (cffi:with-foreign-objects ((content '(:struct amqp-table-entry-t) length))

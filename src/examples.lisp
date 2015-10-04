@@ -7,8 +7,8 @@
       (login-sasl-plain conn "/" "guest" "guest")
       (channel-open conn 1)
       (basic-publish conn 1
-                     :exchange "test-ex"
-                     :routing-key "xx"
+                     :exchange ""
+                     :routing-key "test-queue"
                      :body "this is the message content"
                      :properties '((:app-id . "Application id"))))))
 
@@ -18,9 +18,8 @@
       (socket-open socket "localhost" 5672)
       (login-sasl-plain conn "/" "guest" "guest")
       (channel-open conn 1)
-      (exchange-declare conn 1 "test-ex" "topic")
-      (let ((queue-name "foo"))
-        (queue-bind conn 1 :queue queue-name :exchange "test-ex" :routing-key "xx")
+      (let ((queue-name "test-queue"))
+        (queue-declare conn 1 :queue queue-name)
         (basic-consume conn 1 queue-name)
         (let* ((result (consume-message conn))
                (message (envelope/message result)))
