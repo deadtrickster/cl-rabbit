@@ -22,9 +22,9 @@
                   (type (list :array :unsigned-char length))
                   (foreign-array (cffi:foreign-alloc type :count length)))
              (loop
-                for v across result
-                for i from 0
-                do (setf (cffi:mem-aref foreign-array :unsigned-char i) v))
+               for v across result
+               for i from 0
+               do (setf (cffi:mem-aref foreign-array :unsigned-char i) v))
              foreign-array)))
 
 (defmacro with-foreign-buffer-from-byte-array ((sym buffer) &body body)
@@ -89,8 +89,8 @@
            (type cffi:foreign-pointer ptr)
            (type fixnum size))
   (loop
-     for i from 0 below size
-     do (setf (cffi:mem-aref ptr :char i) 0))
+    for i from 0 below size
+    do (setf (cffi:mem-aref ptr :char i) 0))
   (values))
 
 (defparameter *field-kind-types*
@@ -136,14 +136,14 @@
                  ((integer #.(- (expt 2 31)) #.(1- (expt 2 31))) (typed-value :amqp-field-kind-i32 value))
                  )))
 
-      (cffi:with-foreign-objects ((content '(:struct amqp-table-entry-t) length))
-        (loop
-          for (key . value) in values
-          for i from 0
-          do (setf (cffi:mem-aref content '(:struct amqp-table-entry-t) i)
-                   (list 'key (string-native key) 'value (make-field-value value))))
-        (let ((content-struct (list 'num-entries length 'entries content)))
-          (values content-struct allocated-values))))))
+      (let ((content (car (setf allocated-values (list (cffi:foreign-alloc '(:struct amqp-table-entry-t) :count length))))))
+             (loop
+               for (key . value) in values
+               for i from 0
+               do (setf (cffi:mem-aref content '(:struct amqp-table-entry-t) i)
+                        (list 'key (string-native key) 'value (make-field-value value))))
+             (let ((content-struct (list 'num-entries length 'entries content)))
+               (values content-struct allocated-values))))))
 
 (defun call-with-amqp-table (fn values)
   (let ((length (length values))
@@ -170,10 +170,10 @@
       (unwind-protect
            (cffi:with-foreign-objects ((content '(:struct amqp-table-entry-t) length))
              (loop
-                for (key . value) in values
-                for i from 0
-                do (setf (cffi:mem-aref content '(:struct amqp-table-entry-t) i)
-                         (list 'key (string-native key) 'value (make-field-value value))))
+               for (key . value) in values
+               for i from 0
+               do (setf (cffi:mem-aref content '(:struct amqp-table-entry-t) i)
+                        (list 'key (string-native key) 'value (make-field-value value))))
              (let ((content-struct (list 'num-entries length 'entries content)))
                (funcall fn content-struct)))
 
@@ -194,11 +194,11 @@
   (warn "amqp-table-t references can't be read as lisp objects right now")
   nil
   #+nil(loop
-     with num-entries = (cffi:foreign-slot-value table '(:struct amqp-table-t) 'num-entries)
-     with entry-buffer = (cffi:foreign-slot-value table '(:struct amqp-table-t) 'entries)
-     for i from 0 below num-entries
-     for e = (cffi:mem-aref entry-buffer '(:struct amqp-table-entry-t) i)
-     collect e))
+         with num-entries = (cffi:foreign-slot-value table '(:struct amqp-table-t) 'num-entries)
+         with entry-buffer = (cffi:foreign-slot-value table '(:struct amqp-table-t) 'entries)
+         for i from 0 below num-entries
+         for e = (cffi:mem-aref entry-buffer '(:struct amqp-table-entry-t) i)
+         collect e))
 
 (defmacro print-unreadable-safely ((&rest slots) object stream &body body)
   "A version of PRINT-UNREADABLE-OBJECT and WITH-SLOTS that is safe to use with unbound slots"
@@ -211,6 +211,6 @@
                                                            (slot-boundp ,object-copy ',slot-name))
                                                       (slot-value ,object-copy ',slot-name)
                                                       :not-bound)))
-                                 slots)
+                          slots)
          (print-unreadable-object (,object-copy ,stream-copy :type t :identity nil)
            ,@body)))))
