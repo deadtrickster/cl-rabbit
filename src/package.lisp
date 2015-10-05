@@ -14,6 +14,7 @@
            #:envelope/channel
            #:envelope/consumer-tag
            #:envelope/delivery-tag
+           #:envelope/redelivered
            #:envelope/exchange
            #:envelope/message
            #:envelope/routing-key
