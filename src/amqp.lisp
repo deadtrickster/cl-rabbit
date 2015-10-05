@@ -108,10 +108,18 @@
         (format stream "LENGTH ~a" (array-dimension (slot-value obj 'body) 0))
         (format stream "NOT-BOUND"))))
 
-(defun make-envelope-message (value)
+(defmethod make-envelope-message ((value list))
   (make-instance 'message
                  :body (bytes->array (getf value 'body))
                  :properties (load-properties-to-alist (getf value 'properties))))
+
+(defmethod make-envelope-message (message)
+  (assert (cffi:pointerp message))
+  (flet ((getval (slot-name)
+           (cffi:foreign-slot-value message '(:struct amqp-message-t) slot-name)))
+    (make-instance 'message
+                   :body (bytes->array (getval 'body))
+                   :properties (load-properties-to-alist (getval 'properties)))))
 
 (defclass envelope ()
   ((channel      :type integer
@@ -123,6 +131,9 @@
    (delivery-tag :type integer
                  :initarg :delivery-tag
                  :reader envelope/delivery-tag)
+   (redelivered  :type boolean
+                 :initarg :redelivered
+                 :reader envelope/redelivered)
    (exchange     :type string
                  :initarg :exchange
                  :reader envelope/exchange)
@@ -663,6 +674,7 @@ Passing in NIL will result in blocking behavior."
                                    :channel (getval 'channel)
                                    :consumer-tag (bytes->string (getval 'consumer-tag))
                                    :delivery-tag (getval 'delivery-tag)
+                                   :redelivered (getval 'redelivered)
                                    :exchange (bytes->string (getval 'exchange))
                                    :routing-key (bytes->string (getval 'routing-key))
                                    :message (make-envelope-message (getval 'message))))
