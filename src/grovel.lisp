@@ -144,6 +144,10 @@
          (tv-sec "tv_sec" :type time-t)
          (tv-usec "tv_usec" :type suseconds-t))
 
+(cstruct amqp-bytes-t "amqp_bytes_t"
+         (len "len" :type size-t)
+         (bytes "bytes" :type :pointer))
+
 (cstruct amqp-basic-deliver-t "amqp_basic_deliver_t"
          (consumer-tag  "consumer_tag" :type (:struct amqp-bytes-t))
          (delivery-tag "delivery_tag" :type uint64-t)
@@ -165,10 +169,6 @@
          (reply-type "reply_type" :type :int)
          (reply "reply" :type (:struct amqp-method-t))
          (library-error "library_error" :type :int))
-
-(cstruct amqp-bytes-t "amqp_bytes_t"
-         (len "len" :type size-t)
-         (bytes "bytes" :type :pointer))
 
 (cstruct amqp-channel-open-ok-t "amqp_channel_open_ok_t"
          (channel-id "channel_id" :type (:struct amqp-bytes-t)))
