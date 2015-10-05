@@ -221,6 +221,12 @@
   (timeout (:pointer (:struct timeval)))
   (flags :int))
 
+(cffi:defcfun ("amqp_read_message" amqp-read-message) (:struct amqp-rpc-reply-t)
+  (state amqp-connection-state-t)
+  (channel amqp-channel-t)
+  (message (:pointer (:struct amqp-message-t)))
+  (flags :int))
+
 (cffi:defcfun ("amqp_basic_cancel" amqp-basic-cancel) :pointer
   (state amqp-connection-state-t)
   (channel amqp-channel-t)
