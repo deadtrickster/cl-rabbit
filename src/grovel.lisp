@@ -144,6 +144,19 @@
          (tv-sec "tv_sec" :type time-t)
          (tv-usec "tv_usec" :type suseconds-t))
 
+(cstruct amqp-basic-deliver-t "amqp_basic_deliver_t"
+         (consumer-tag  "consumer_tag" :type (:struct amqp-bytes-t))
+         (delivery-tag "delivery_tag" :type uint64-t)
+         (redelivered "redelivered" :type :boolean)
+         (exchange "exchange" :type (:struct amqp-bytes-t))
+         (routing-key "routing_key" :type (:struct amqp-bytes-t)))
+
+(cstruct amqp-basic-return-t "amqp_basic_return_t"
+         (reply_code  "reply_code" :type uint16-t)
+         (reply-text "reply_text" :type (:struct amqp-bytes-t))
+         (exchange "exchange" :type (:struct amqp-bytes-t))
+         (routing-key "routing_key" :type (:struct amqp-bytes-t)))
+
 (cstruct amqp-method-t "amqp_method_t"
          (id "id" :type amqp-method-number-t)
          (decoded "decoded" :type :pointer))
