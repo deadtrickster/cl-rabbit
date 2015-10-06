@@ -422,7 +422,7 @@ GLOBAL - if T QoS settings should apply per-channel, if NIL QoS settings should 
   (check-type channel integer)
   (with-state (state conn)
     (unwind-protect
-         (verify-rpc-framing-call (amqp-basic-qos state channel prefetch-size prefetch-count global))
+         (verify-rpc-framing-call state channel (amqp-basic-qos state channel prefetch-size prefetch-count global))
       (maybe-release-buffers state))))
 
 (defun basic-publish (conn channel &key
