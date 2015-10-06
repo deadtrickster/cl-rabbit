@@ -96,6 +96,13 @@
   (delivery-tag uint64-t)
   (multiple amqp-boolean-t))
 
+(cffi:defcfun ("amqp_basic_qos" amqp-basic-qos) :pointer
+  (state amqp-connection-state-t)
+  (channel amqp-channel-t)
+  (prefetch-size uint32-t)
+  (prefetch-count uint64-t)
+  (global :boolean))
+
 (cffi:defcfun ("amqp_basic_get" amqp-basic-get) (:struct amqp-rpc-reply-t)
   (state amqp-connection-state-t)
   (channel amqp-channel-t)

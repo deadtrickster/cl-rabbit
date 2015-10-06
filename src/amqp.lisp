@@ -404,6 +404,27 @@ REQUEUE - indicate to the broker whether it should requeue the message"
          (verify-status (amqp-basic-nack state channel delivery-tag (if multiple 1 0) (if requeue 1 0)))
       (maybe-release-buffers state))))
 
+(defun basic-qos (conn channel prefetch-size prefetch-count &key global)
+  "Specify quality of service.
+This method requests a specific quality of service.
+The QoS can be specified for the current channel or for all channels on the connection.
+The particular properties and semantics of a qos method always
+depend on the content class semantics. Though the qos method could in principle apply to both peers,
+it is currently meaningful only for the server.
+
+Parameters:
+CONN - the connection object
+CHANNEL - the channel identifier
+PREFETCH-SIZE - specifies the prefetch window size in octets
+PREFETCH-COUNT - specifies a prefetch window in terms of whole messages
+GLOBAL - if T QoS settings should apply per-channel, if NIL QoS settings should apply per-consumer
+(for new consumers on the channel; existing ones being unaffected)"
+  (check-type channel integer)
+  (with-state (state conn)
+    (unwind-protect
+         (verify-rpc-framing-call (amqp-basic-qos state channel prefetch-size prefetch-count global))
+      (maybe-release-buffers state))))
+
 (defun basic-publish (conn channel &key
                                      exchange routing-key mandatory immediate properties
                                      body (encoding :utf-8))
