@@ -306,10 +306,13 @@ CODE - the reason code, defaults to AMQP_REPLY_SUCCESS"
          (verify-rpc-reply state channel (amqp-channel-close state channel (or code +amqp-reply-success+)))
       (maybe-release-buffers state))))
 
+(deftype persistent-mode ()
+  `(member t nil))
+
 (defparameter *props-mapping*
   `((:content-type content-type :string string ,+amqp-basic-content-type-flag+)
     (:content-encoding content-encoding :string string ,+amqp-basic-content-encoding-flag+)
-    (:delivery-mode delivery-mode :integer (unsigned-byte 8) ,+amqp-basic-delivery-mode-flag+)
+    (:persistent delivery-mode :persistent persistent-mode ,+amqp-basic-delivery-mode-flag+)
     (:priority priority :integer (unsigned-byte 8) ,+amqp-basic-priority-flag+)
     (:correlation-id correlation-id :string string ,+amqp-basic-correlation-id-flag+)
     (:reply-to reply-to :string string ,+amqp-basic-reply-to-flag+)
@@ -332,7 +335,8 @@ CODE - the reason code, defaults to AMQP_REPLY_SUCCESS"
                      (ecase (third def)
                        (:string (bytes->string value))
                        (:integer value)
-                       (:table (amqp-table->lisp value)))))))
+                       (:table (amqp-table->lisp value))
+                       (:persistent (if (= 2 value) t)))))))
 
 (defun fill-in-properties-alist (properties)
   (let ((allocated-values nil)
@@ -363,7 +367,8 @@ CODE - the reason code, defaults to AMQP_REPLY_SUCCESS"
                     append (list (second def) (ecase (third def)
                                                 (:string (string-native value))
                                                 (:integer value)
-                                                (:table (field-table value)))))))
+                                                (:table (field-table value))
+                                                (:persistent (if value 2 1)))))))
         (values (nconc (list 'flags flags) res)
                 allocated-values)))))
 
