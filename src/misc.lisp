@@ -137,13 +137,13 @@
                  )))
 
       (let ((content (car (setf allocated-values (list (cffi:foreign-alloc '(:struct amqp-table-entry-t) :count length))))))
-             (loop
-               for (key . value) in values
-               for i from 0
-               do (setf (cffi:mem-aref content '(:struct amqp-table-entry-t) i)
-                        (list 'key (string-native key) 'value (make-field-value value))))
-             (let ((content-struct (list 'num-entries length 'entries content)))
-               (values content-struct allocated-values))))))
+        (loop
+          for (key . value) in values
+          for i from 0
+          do (setf (cffi:mem-aref content '(:struct amqp-table-entry-t) i)
+                   (list 'key (string-native key) 'value (make-field-value value))))
+        (let ((content-struct (list 'num-entries length 'entries content)))
+          (values content-struct allocated-values))))))
 
 (defun call-with-amqp-table (fn values)
   (let ((length (length values))
@@ -189,16 +189,36 @@
              (call-with-amqp-table #',fn ,values-sym)
              (,fn amqp-empty-table))))))
 
+(defun amqp-table-entry-value->lisp (table-entry-value)
+  (let ((kind (cffi:foreign-enum-keyword 'amqp-field-value-kind-t (getf table-entry-value 'kind))))
+    (ecase kind
+      (:amqp-field-kind-boolean (getf table-entry-value 'value-boolean))
+      (:amqp-field-kind-i8 (getf table-entry-value 'value-i8))
+      (:amqp-field-kind-u8 (getf table-entry-value 'value-u8))
+      (:amqp-field-kind-i16 (getf table-entry-value 'value-i16))
+      (:amqp-field-kind-u16 (getf table-entry-value 'value-u16))
+      (:amqp-field-kind-i32 (getf table-entry-value 'value-i32))
+      (:amqp-field-kind-u32 (getf table-entry-value 'value-u32))
+      (:amqp-field-kind-i64 (getf table-entry-value 'value-i64))
+      (:amqp-field-kind-u64 (getf table-entry-value 'value-u64))
+      (:amqp-field-kind-f32 (getf table-entry-value 'value-f32))
+      (:amqp-field-kind-f64 (getf table-entry-value 'value-f64))
+      (:amqp-field-kind-utf8 (bytes->string (getf table-entry-value 'value-bytes)))
+      (:amqp-field-kind-bytes (bytes->array (getf table-entry-value 'value-bytes)))
+      (:amqp-field-kind-table (amqp-table->lisp (getf table-entry-value 'value-bytes)))
+      ;; not supported yet
+      (:amqp-field-kind-decimal (error "Decimal value decoding not supported yet"))
+      (:amqp-field-kind-array (error "Array value decoding not supported yet")))))
+
+(defun amqp-table-entry->lisp (table-entry)
+  (let ((key (bytes->string (getf table-entry 'key))))
+    (cons key
+          (amqp-table-entry-value->lisp
+           (getf table-entry 'value)))))
+
 (defun amqp-table->lisp (table)
-  (declare (ignore table))
-  (warn "amqp-table-t references can't be read as lisp objects right now")
-  nil
-  #+nil(loop
-         with num-entries = (cffi:foreign-slot-value table '(:struct amqp-table-t) 'num-entries)
-         with entry-buffer = (cffi:foreign-slot-value table '(:struct amqp-table-t) 'entries)
-         for i from 0 below num-entries
-         for e = (cffi:mem-aref entry-buffer '(:struct amqp-table-entry-t) i)
-         collect e))
+  (loop for i from 0 below (getf table 'num-entries)
+        collect (amqp-table-entry->lisp (cffi:mem-aref (getf table 'entries) '(:struct amqp-table-entry-t) i))))
 
 (defmacro print-unreadable-safely ((&rest slots) object stream &body body)
   "A version of PRINT-UNREADABLE-OBJECT and WITH-SLOTS that is safe to use with unbound slots"
