@@ -170,7 +170,7 @@
 
 (defun verify-rpc-framing-call (state channel result)
   (when (cffi:null-pointer-p result)
-    (verify-rpc-reply state channel (print (amqp-get-rpc-reply state)))))
+    (verify-rpc-reply state channel (amqp-get-rpc-reply state))))
 
 (defun maybe-release-buffers (state)
   (amqp-maybe-release-buffers state))
