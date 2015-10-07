@@ -258,7 +258,7 @@
          (channel "channel" :type amqp-channel-t)
          (consumer-tag "consumer_tag" :type (:struct amqp-bytes-t))
          (delivery-tag "delivery_tag" :type uint64-t)
-         (redelivered "redelivered" :type amqp-boolean-t)
+         (redelivered "redelivered" :type :boolean)
          (exchange "exchange" :type (:struct amqp-bytes-t))
          (routing-key "routing_key" :type (:struct amqp-bytes-t))
          (message "message" :type (:struct amqp-message-t)))
