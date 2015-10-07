@@ -181,6 +181,9 @@
          (message-count "message_count" :type uint32-t)
          (consumer-count "consumer_count" :type uint32-t))
 
+(cstruct amqp-queue-delete-ok-t "amqp_queue_delete_ok_t"
+         (message-count "message_count" :type uint32-t))
+
 (cstruct amqp-basic-consume-ok-t "amqp_basic_consume_ok_t"
          (consumer-tag "consumer_tag" :type (:struct amqp-bytes-t)))
 

@@ -170,7 +170,7 @@
 
 (defun verify-rpc-framing-call (state channel result)
   (when (cffi:null-pointer-p result)
-    (verify-rpc-reply state channel (amqp-get-rpc-reply state))))
+    (verify-rpc-reply state channel (print (amqp-get-rpc-reply state)))))
 
 (defun maybe-release-buffers (state)
   (amqp-maybe-release-buffers state))
@@ -647,7 +647,9 @@ subscription queues are bound to a topic exchange."
   (with-state (state conn)
     (unwind-protect
          (with-bytes-strings ((queue-bytes queue))
-           (verify-rpc-framing-call conn channel (amqp-queue-delete state channel queue-bytes (if if-unused 1 0) (if if-empty 1 0))))
+           (let ((result (amqp-queue-delete state channel queue-bytes (if if-unused 1 0) (if if-empty 1 0))))
+             (verify-rpc-framing-call state channel result)
+             (cffi:foreign-slot-value result '(:struct amqp-queue-delete-ok-t) 'message-count)))
       (maybe-release-buffers state))))
 
 (defun basic-consume (conn channel queue &key consumer-tag no-local no-ack exclusive arguments)
