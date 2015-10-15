@@ -146,40 +146,13 @@
           (values content-struct allocated-values))))))
 
 (defun call-with-amqp-table (fn values)
-  (let ((length (length values))
-        (allocated-values nil))
-
-    (labels ((string-native (string)
-               (let* ((utf (babel:string-to-octets string :encoding :utf-8))
-                      (ptr (array-to-foreign-char-array utf)))
-                 (push ptr allocated-values)
-                 (list 'len (array-dimension utf 0) 'bytes ptr)))
-
-             (typed-value (type value)
-               (let ((struct-entry-name (cdr (assoc type *field-kind-types*))))
-                 (unless struct-entry-name
-                   (error "Illegal kind: ~s" type))
-                 (list 'kind (cffi:foreign-enum-value 'amqp-field-value-kind-t type) struct-entry-name value)))
-
-             (make-field-value (value)
-               (etypecase value
-                 (string (typed-value :amqp-field-kind-utf8 (string-native value)))
-                 ((integer #.(- (expt 2 31)) #.(1- (expt 2 31))) (typed-value :amqp-field-kind-i32 value))
-                 )))
-
-      (unwind-protect
-           (cffi:with-foreign-objects ((content '(:struct amqp-table-entry-t) length))
-             (loop
-               for (key . value) in values
-               for i from 0
-               do (setf (cffi:mem-aref content '(:struct amqp-table-entry-t) i)
-                        (list 'key (string-native key) 'value (make-field-value value))))
-             (let ((content-struct (list 'num-entries length 'entries content)))
-               (funcall fn content-struct)))
-
-        ;; Unwind form
-        (dolist (ptr allocated-values)
-          (cffi:foreign-free ptr))))))
+  (multiple-value-bind (content-struct allocated-values)
+      (create-amqp-table values)
+    (unwind-protect
+         (funcall fn content-str)
+         ;; Unwind form
+         (dolist (ptr allocated-values)
+           (cffi:foreign-free ptr)))))
 
 (defmacro with-amqp-table ((table values) &body body)
   (alexandria:with-gensyms (values-sym fn)
@@ -189,31 +162,39 @@
              (call-with-amqp-table #',fn ,values-sym)
              (,fn amqp-empty-table))))))
 
-(defun amqp-table-entry-value->lisp (table-entry-value)
-  (let ((kind (cffi:foreign-enum-keyword 'amqp-field-value-kind-t (getf table-entry-value 'kind))))
+(defun amqp-array->lisp (amqp-array)
+  (let ((array (vector)))
+    (loop for i from 0 below (getf amqp-array 'num-entries)
+          do (setf (aref array i)
+                   (amqp-field-value->lisp (cffi:mem-aref (getf amqp-array 'entries) '(:struct amqp-field-value-t) i))))))
+
+(defun amqp-decimal->lisp (amqp-decimal)
+  (/ (getf amqp-decimal 'value) (expt 10 (getf amqp-decimal 'decimals))))
+
+(defun amqp-field-value->lisp (amqp-field-value)
+  (let ((kind (cffi:foreign-enum-keyword 'amqp-field-value-kind-t (getf amqp-field-value 'kind))))
     (ecase kind
-      (:amqp-field-kind-boolean (getf table-entry-value 'value-boolean))
-      (:amqp-field-kind-i8 (getf table-entry-value 'value-i8))
-      (:amqp-field-kind-u8 (getf table-entry-value 'value-u8))
-      (:amqp-field-kind-i16 (getf table-entry-value 'value-i16))
-      (:amqp-field-kind-u16 (getf table-entry-value 'value-u16))
-      (:amqp-field-kind-i32 (getf table-entry-value 'value-i32))
-      (:amqp-field-kind-u32 (getf table-entry-value 'value-u32))
-      (:amqp-field-kind-i64 (getf table-entry-value 'value-i64))
-      (:amqp-field-kind-u64 (getf table-entry-value 'value-u64))
-      (:amqp-field-kind-f32 (getf table-entry-value 'value-f32))
-      (:amqp-field-kind-f64 (getf table-entry-value 'value-f64))
-      (:amqp-field-kind-utf8 (bytes->string (getf table-entry-value 'value-bytes)))
-      (:amqp-field-kind-bytes (bytes->array (getf table-entry-value 'value-bytes)))
-      (:amqp-field-kind-table (amqp-table->lisp (getf table-entry-value 'value-bytes)))
-      ;; not supported yet
-      (:amqp-field-kind-decimal (error "Decimal value decoding not supported yet"))
-      (:amqp-field-kind-array (error "Array value decoding not supported yet")))))
+      (:amqp-field-kind-boolean (getf amqp-field-value 'value-boolean))
+      (:amqp-field-kind-i8 (getf amqp-field-value 'value-i8))
+      (:amqp-field-kind-u8 (getf amqp-field-value 'value-u8))
+      (:amqp-field-kind-i16 (getf amqp-field-value 'value-i16))
+      (:amqp-field-kind-u16 (getf amqp-field-value 'value-u16))
+      (:amqp-field-kind-i32 (getf amqp-field-value 'value-i32))
+      (:amqp-field-kind-u32 (getf amqp-field-value 'value-u32))
+      (:amqp-field-kind-i64 (getf amqp-field-value 'value-i64))
+      (:amqp-field-kind-u64 (getf amqp-field-value 'value-u64))
+      (:amqp-field-kind-f32 (getf amqp-field-value 'value-f32))
+      (:amqp-field-kind-f64 (getf amqp-field-value 'value-f64))
+      (:amqp-field-kind-utf8 (bytes->string (getf amqp-field-value 'value-bytes)))
+      (:amqp-field-kind-bytes (bytes->array (getf amqp-field-value 'value-bytes)))
+      (:amqp-field-kind-table (amqp-table->lisp (getf amqp-field-value 'value-table)))
+      (:amqp-field-kind-array (amqp-array->lisp (getf amqp-field-value 'value-array)))
+      (:amqp-field-kind-decimal (amqp-decimal->lisp (getf amqp-field-value 'value-array))))))
 
 (defun amqp-table-entry->lisp (table-entry)
   (let ((key (bytes->string (getf table-entry 'key))))
     (cons key
-          (amqp-table-entry-value->lisp
+          (amqp-field-value->lisp
            (getf table-entry 'value)))))
 
 (defun amqp-table->lisp (table)
