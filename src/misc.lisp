@@ -149,7 +149,7 @@
   (multiple-value-bind (content-struct allocated-values)
       (create-amqp-table values)
     (unwind-protect
-         (funcall fn content-str)
+         (funcall fn content-struct)
          ;; Unwind form
          (dolist (ptr allocated-values)
            (cffi:foreign-free ptr)))))
