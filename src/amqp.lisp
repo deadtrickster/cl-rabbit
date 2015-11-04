@@ -632,16 +632,18 @@ subscription queues are bound to a topic exchange."
              nil))
       (maybe-release-buffers state))))
 
-(defun queue-purge (conn channel queue)
+(defun queue-purge (conn channel &key (queue ""))
   (check-type channel integer)
   (check-type queue string)
   (with-state (state conn)
     (unwind-protect
          (with-bytes-strings ((queue-bytes queue))
-           (amqp-queue-purge state channel queue-bytes))
+           (let ((result (amqp-queue-purge state channel queue-bytes)))
+             (verify-rpc-framing-call state channel result)
+             (cffi:foreign-slot-value result '(:struct amqp-queue-purge-ok-t) 'message-count)))
       (maybe-release-buffers state))))
 
-(defun queue-delete (conn channel queue &key if-unused if-empty)
+(defun queue-delete (conn channel &key (queue "") if-unused if-empty)
   (check-type channel integer)
   (check-type queue string)
   (with-state (state conn)
