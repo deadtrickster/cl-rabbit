@@ -500,7 +500,7 @@ following property keywords are accepted:
                  (send-with-data (list 'len 0 'bytes (cffi-sys:null-pointer))))))
       (maybe-release-buffers state))))
 
-(defun exchange-declare (conn channel exchange type &key passive durable auto-delete internal arguments)
+(defun exchange-declare (conn channel exchange &key (type "direct") passive durable auto-delete internal arguments)
   (check-type channel integer)
   (check-type exchange string)
   (check-type type string)
@@ -552,7 +552,7 @@ following property keywords are accepted:
                                                           routing-key-bytes table))))
       (maybe-release-buffers state))))
 
-(defun exchange-unbind (conn channel &key destination source routing-key)
+(defun exchange-unbind (conn channel &key destination source routing-key arguments)
   (check-type channel integer)
   (check-type destination (or null string))
   (check-type source (or null string))
@@ -562,9 +562,10 @@ following property keywords are accepted:
          (with-bytes-strings ((destination-bytes destination)
                               (source-bytes source)
                               (routing-key-bytes routing-key))
-           (verify-rpc-framing-call state channel
-                                    (amqp-exchange-unbind state channel destination-bytes source-bytes
-                                                          routing-key-bytes amqp-empty-table)))
+           (with-amqp-table (table arguments)
+             (verify-rpc-framing-call state channel
+                                      (amqp-exchange-unbind state channel destination-bytes source-bytes
+                                                            routing-key-bytes table))))
       (maybe-release-buffers state))))
 
 (defun queue-declare (conn channel &key queue passive durable exclusive auto-delete arguments)
