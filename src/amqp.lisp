@@ -431,8 +431,8 @@ GLOBAL - if T QoS settings should apply per-channel, if NIL QoS settings should 
       (maybe-release-buffers state))))
 
 (defun basic-publish (conn channel &key
-                                     exchange routing-key mandatory immediate properties
-                                     body (encoding :utf-8))
+                                     exchange routing-key mandatory immediate content-properties
+                                     content (encoding :utf-8))
   "Publish a message on an exchange with a routing key.
 Note that at the AMQ protocol level basic.publish is an async method:
 this means error conditions that occur on the broker (such as
@@ -457,17 +457,17 @@ IMMEDIATE - indicate to the broker that the message MUST be delivered
 to a consumer immediately. If the broker cannot do this it should
 response with a basic.reject method.
 
-BODY - can be either a vector of bytes, or a string. If it's a string,
+CONTENT - can be either a vector of bytes, or a string. If it's a string,
 then it will be encoded using ENCODING before sending.
 
-PROPERTIES - indicates an alist of message properties. The
+CONTENT-PROPERTIES - indicates an alist of message properties. The
 following property keywords are accepted:
 :CONTENT-TYPE :CONTENT-ENCODING :DELIVERY-MODE :PRIORITY :CORRELATION-ID 
 :REPLY-TO :EXPIRATION :MESSAGE-ID :TIMESTAMP :TYPE :USER-ID :APP-ID :CLUSTER-ID"
   (check-type channel integer)
   (check-type exchange (or null string))
   (check-type routing-key (or null string))
-  (check-type body (or null vector string))
+  (check-type content (or null vector string))
   (with-state (state conn)
     (unwind-protect
          (with-bytes-strings ((exchange-bytes exchange)
@@ -478,25 +478,25 @@ following property keywords are accepted:
                                                          props data)))
 
                     (send-with-data (data)
-                      (if properties
+                      (if content-properties
                           (cffi:with-foreign-objects ((p '(:struct amqp-basic-properties-t)))
                             (multiple-value-bind (props-list allocated)
-                                (fill-in-properties-alist properties)
+                                (fill-in-properties-alist content-properties)
                               (unwind-protect
                                    (progn
                                      (setf (cffi:mem-ref p '(:struct amqp-basic-properties-t)) props-list)
                                      (send-with-properties data p))
                                 (dolist (ptr allocated)
                                   (cffi:foreign-free ptr)))))
-                          ;; ELSE: No properties argument
+                          ;; ELSE: No content-properties argument
                           (send-with-properties data (cffi:null-pointer)))))
 
-             (if body
-                 (with-bytes-struct (body-val (etypecase body
-                                                (string (babel:string-to-octets body :encoding encoding))
-                                                (vector body)))
+             (if content
+                 (with-bytes-struct (body-val (etypecase content
+                                                (string (babel:string-to-octets content :encoding encoding))
+                                                (vector content)))
                    (send-with-data body-val))
-                 ;; ELSE: body is nil, send a blank struct
+                 ;; ELSE: content is nil, send a blank struct
                  (send-with-data (list 'len 0 'bytes (cffi-sys:null-pointer))))))
       (maybe-release-buffers state))))
 
