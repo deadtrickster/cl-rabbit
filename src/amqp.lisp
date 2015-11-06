@@ -670,6 +670,17 @@ subscription queues are bound to a topic exchange."
                (bytes->string (cffi:foreign-slot-value result '(:struct amqp-basic-consume-ok-t) 'consumer-tag)))))
       (maybe-release-buffers state))))
 
+(defun confirm-select (conn channel)
+  "Put CHANNEL in confirm mode
+Parameters:
+CONN - the connection object
+CHANNEL - the channel that should be closed"
+  (check-type channel integer)
+  (with-state (state conn)
+    (unwind-protect
+         (verify-rpc-framing-call state channel (amqp-confirm-select state channel))
+      (maybe-release-buffers state))))
+
 (defun consume-message (conn &key timeout)
   "Wait for and consume a message.
 Waits for a basic.deliver method on any channel, upon receipt of

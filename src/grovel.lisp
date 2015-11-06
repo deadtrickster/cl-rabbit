@@ -190,6 +190,10 @@
 (cstruct amqp-basic-consume-ok-t "amqp_basic_consume_ok_t"
          (consumer-tag "consumer_tag" :type (:struct amqp-bytes-t)))
 
+(cstruct amqp-basic-ack-t "amqp_basic_ack_t"
+         (delivery-tag "delivery_tag" :type uint64-t)
+         (multiple "multiple" :type :boolean))
+
 (cstruct amqp-frame-t "amqp_frame_t"
          (frame-type "frame_type" :type uint8-t)
          (channel "channel" :type amqp-channel-t)

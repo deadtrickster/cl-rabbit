@@ -31,6 +31,7 @@
            #:queue-bind
            #:queue-declare
            #:queue-unbind
+           #:confirm-select
            #:rabbitmq-error
            #:rabbitmq-server-error
            #:socket-open
