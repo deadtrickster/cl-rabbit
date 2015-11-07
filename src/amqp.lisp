@@ -674,11 +674,44 @@ subscription queues are bound to a topic exchange."
   "Put CHANNEL in confirm mode
 Parameters:
 CONN - the connection object
-CHANNEL - the channel that should be closed"
+CHANNEL - the channel that should be put in confirm mode"
   (check-type channel integer)
   (with-state (state conn)
     (unwind-protect
          (verify-rpc-framing-call state channel (amqp-confirm-select state channel))
+      (maybe-release-buffers state))))
+
+(defun tx-select (conn channel)
+  "Put CHANNEL in transaction mode
+Parameters:
+CONN - the connection object
+CHANNEL - the channel that should be put in transaction mode"
+  (check-type channel integer)
+  (with-state (state conn)
+    (unwind-protect
+         (verify-rpc-framing-call state channel (amqp-tx-select state channel))
+      (maybe-release-buffers state))))
+
+(defun tx-commit (conn channel)
+  "Commit the current transaction.
+Parameters:
+CONN - the connection object
+CHANNEL - transaction"
+  (check-type channel integer)
+  (with-state (state conn)
+    (unwind-protect
+         (verify-rpc-framing-call state channel (amqp-tx-commit state channel))
+      (maybe-release-buffers state))))
+
+(defun tx-rollback (conn channel)
+  "Abandon the current transaction.
+Parameters:
+CONN - the connection object
+CHANNEL - transaction channel"
+  (check-type channel integer)
+  (with-state (state conn)
+    (unwind-protect
+         (verify-rpc-framing-call state channel (amqp-tx-rollback state channel))
       (maybe-release-buffers state))))
 
 (defun consume-message (conn &key timeout)

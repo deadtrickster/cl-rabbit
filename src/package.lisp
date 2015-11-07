@@ -32,6 +32,9 @@
            #:queue-declare
            #:queue-unbind
            #:confirm-select
+           #:tx-select
+           #:tx-commit
+           #:tx-rollback
            #:rabbitmq-error
            #:rabbitmq-server-error
            #:socket-open
