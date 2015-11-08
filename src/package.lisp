@@ -30,6 +30,7 @@
            #:message/body
            #:message/properties
            #:new-connection
+           #:connection-close-ok
            #:queue-bind
            #:queue-declare
            #:queue-unbind
@@ -51,7 +52,9 @@
            #:rabbitmq-server-error/type
            #:basic-cancel
            #:rabbitmq-server-error/reply-code
-           #:rabbitmq-server-error/message
+           #:rabbitmq-server-error/reply-text
+           #:rabbitmq-server-error/method-id
+           #:rabbitmq-server-error/class-id
            #:+amqp-reply-success+
            #:+amqp-content-too-large+
            #:+amqp-no-route+

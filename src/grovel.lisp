@@ -176,6 +176,9 @@
 (cstruct amqp-channel-close-ok-t "amqp_channel_close_ok_t"
          (dummy "dummy" :type :char))
 
+(cstruct amqp-connection-close-ok-t "amqp_connection_close_ok_t"
+         (dummy "dummy" :type :char))
+
 (cstruct amqp-channel-flow-ok-t "amqp_channel_flow_ok_t"
          (active "active" :type :boolean))
 

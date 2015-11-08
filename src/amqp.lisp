@@ -41,17 +41,20 @@
            :error-description description)))
 
 (define-condition rabbitmq-server-error (rabbitmq-error)
-  ((method     :type integer
-               :initarg :method
-               :reader rabbitmq-server-error/method)
+  ((method-id  :type integer
+               :initarg :method-id
+               :reader rabbitmq-server-error/method-id)
+   (class-id  :type integer
+               :initarg :class-id
+               :reader rabbitmq-server-error/class-id)
    (reply-code :type integer
                :initarg :reply-code
                :initform 0
                :reader rabbitmq-server-error/reply-code)
-   (message    :type string
+   (reply-text :type string
                :initarg :message
                :initform "Unknown error"
-               :reader rabbitmq-server-error/message))
+               :reader rabbitmq-server-error/reply-text))
   (:report (lambda (condition out)
              (format out "RPC error: ~a: ~a"
                      (slot-value condition 'reply-code)
@@ -59,24 +62,28 @@
   (:documentation "Error that is raised when the server reports an error condition"))
 
 (defun raise-rabbitmq-server-error (state channel result)
+  (declare (ignore state channel))
   (let* ((reply (getf result 'reply))
          (id (getf reply 'id))
          (decoded (getf reply 'decoded)))
 
     (cond ((eql id +amqp-channel-close-method+)
            (let ((reply-code (cffi:foreign-slot-value decoded '(:struct amqp-channel-close-t) 'reply-code))
-                 (reply-text (bytes->string (cffi:foreign-slot-value decoded '(:struct amqp-channel-close-t) 'reply-text))))
+                 (reply-text (bytes->string (cffi:foreign-slot-value decoded '(:struct amqp-channel-close-t) 'reply-text)))
+                 (class-id (cffi:foreign-slot-value decoded '(:struct amqp-channel-close-t) 'class-id))
+                 (method-id (cffi:foreign-slot-value decoded '(:struct amqp-channel-close-t) 'method-id)))
              ;; Send an ack to the server to indicate that the close message was received
-             (if channel
-                 (channel-close-ok% state channel)
-                 (warn "Got channel close message and the channel value is not set"))
-             (error 'rabbitmq-server-error :method id :reply-code reply-code :message reply-text)))
+             
+             (error 'rabbitmq-server-error :method-id method-id :class-id class-id :reply-code reply-code :reply-text reply-text)))
 
           ((eql id +amqp-connection-close-method+)
            (let ((reply-code (cffi:foreign-slot-value decoded '(:struct amqp-connection-close-t) 'reply-code))
-                 (reply-text (bytes->string (cffi:foreign-slot-value decoded '(:struct amqp-connection-close-t) 'reply-text))))
-             (error 'rabbitmq-server-error :method id :reply-code reply-code :message reply-text)))
+                 (reply-text (bytes->string (cffi:foreign-slot-value decoded '(:struct amqp-connection-close-t) 'reply-text)))
+                 (class-id (cffi:foreign-slot-value decoded '(:struct amqp-connection-close-t) 'class-id))
+                 (method-id (cffi:foreign-slot-value decoded '(:struct amqp-connection-close-t) 'method-id)))
+             (error 'rabbitmq-server-error :method-id method-id :class-id class-id :reply-code reply-code :reply-text reply-text)))
           (t
+           (error "WTF?")
            (error 'rabbitmq-server-error)))))
 
 (defclass connection ()
@@ -327,6 +334,15 @@ This method confirms a Channel.Close method and tells the recipient
 that it is safeto release resources for the channel."
   (with-state (state conn)
     (channel-close-ok% state channel)))
+
+(defun connection-close-ok (conn channel)
+  "Confirm a CONN close.
+This method confirms a Connection.Close method and tells the recipient
+that it is safe to release resources for the connection and close the socket."
+  (with-state (state conn)
+    (cffi:with-foreign-objects ((decoded '(:struct amqp-connection-close-ok-t)))
+      (setf (cffi:foreign-slot-value decoded '(:struct amqp-connection-close-ok-t) 'dummy) 0)
+      (amqp-send-method state channel +amqp-connection-close-ok-method+ decoded))))
 
 (deftype persistent-mode ()
   `(member t nil))
