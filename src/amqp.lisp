@@ -68,7 +68,7 @@
                  (reply-text (bytes->string (cffi:foreign-slot-value decoded '(:struct amqp-channel-close-t) 'reply-text))))
              ;; Send an ack to the server to indicate that the close message was received
              (if channel
-                 (confirm-channel-close state channel)
+                 (channel-close-ok% state channel)
                  (warn "Got channel close message and the channel value is not set"))
              (error 'rabbitmq-server-error :method id :reply-code reply-code :message reply-text)))
 
@@ -290,21 +290,43 @@ ACTIVE - a boolean indicating if flow should be enabled or disabled"
   (check-type channel integer)
   (with-state (state conn)
     (unwind-protect
-         (verify-rpc-framing-call state channel (amqp-channel-flow state channel (if active 1 0)))
+         (let ((result (amqp-channel-flow state channel (if active 1 0))))
+           (verify-rpc-framing-call state channel result)
+           (cffi:foreign-slot-value result '(:struct amqp-channel-flow-ok-t) 'active))
       (maybe-release-buffers state))))
 
-(defun channel-close (conn channel &key code)
+(defun channel-flow-ok (conn channel active)
+  "Confirms to the peer that a flow command was received and processed."
+  (check-type channel integer)
+  (with-state (state conn)
+    (cffi:with-foreign-objects ((decoded '(:struct amqp-channel-flow-ok-t)))
+      (setf (cffi:foreign-slot-value decoded '(:struct amqp-channel-flow-ok-t) 'active) (if active 1 0))
+      (amqp-send-method state channel +amqp-channel-flow-ok-method+ decoded))))
+
+(defun channel-close (conn channel &key reply-code)
   "Closes a channel.
 Parameters:
 CONN - the connection object
 CHANNEL - the channel that should be closed
 CODE - the reason code, defaults to AMQP_REPLY_SUCCESS"
   (check-type channel integer)
-  (check-type code (or null integer))
+  (check-type reply-code (or null integer))
   (with-state (state conn)
     (unwind-protect
-         (verify-rpc-reply state channel (amqp-channel-close state channel (or code +amqp-reply-success+)))
+         (verify-rpc-reply state channel (amqp-channel-close state channel (or reply-code +amqp-reply-success+)))
       (maybe-release-buffers state))))
+
+(defun channel-close-ok% (state channel)
+  (cffi:with-foreign-objects ((decoded '(:struct amqp-channel-close-ok-t)))
+    (setf (cffi:foreign-slot-value decoded '(:struct amqp-channel-close-ok-t) 'dummy) 0)
+    (amqp-send-method state channel +amqp-channel-close-ok-method+ decoded)))
+
+(defun channel-close-ok (conn channel)
+  "Confirm a CHANNEL close.
+This method confirms a Channel.Close method and tells the recipient
+that it is safeto release resources for the channel."
+  (with-state (state conn)
+    (channel-close-ok% state channel)))
 
 (deftype persistent-mode ()
   `(member t nil))
@@ -802,11 +824,6 @@ retrieved has been processed"
 (defun get-sockfd (conn)
   (with-state (state conn)
     (amqp-get-sockfd state)))
-
-(defun confirm-channel-close (state channel)
-  (cffi:with-foreign-objects ((decoded '(:struct amqp-channel-close-ok-t)))
-    (setf (cffi:foreign-slot-value decoded '(:struct amqp-channel-close-ok-t) 'dummy) 0)
-    (amqp-send-method state channel +amqp-channel-close-ok-method+ decoded)))
 
 (defmacro with-connection ((conn) &body body)
   (let ((conn-sym (gensym "CONN-")))

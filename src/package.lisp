@@ -7,7 +7,9 @@
            #:basic-publish
            #:basic-qos
            #:channel-close
+           #:channel-close-ok
            #:channel-flow
+           #:channel-flow-ok
            #:channel-open
            #:consume-message
            #:destroy-connection

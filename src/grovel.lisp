@@ -176,6 +176,9 @@
 (cstruct amqp-channel-close-ok-t "amqp_channel_close_ok_t"
          (dummy "dummy" :type :char))
 
+(cstruct amqp-channel-flow-ok-t "amqp_channel_flow_ok_t"
+         (active "active" :type :boolean))
+
 (cstruct amqp-queue-declare-ok-t "amqp_queue_declare_ok_t"
          (queue "queue" :type (:struct amqp-bytes-t))
          (message-count "message_count" :type uint32-t)
