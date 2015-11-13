@@ -134,7 +134,11 @@
                (etypecase value
                  (string (typed-value :amqp-field-kind-utf8 (string-native value)))
                  ((integer #.(- (expt 2 31)) #.(1- (expt 2 31))) (typed-value :amqp-field-kind-i32 value))
-                 )))
+                 (boolean (typed-value :amqp-field-kind-boolean (if t 1 0)))
+                 (list (multiple-value-bind (table-struct allocated-values%)
+                           (create-amqp-table value)
+                         (setf allocated-values (append allocated-values allocated-values%))
+                         (typed-value :amqp-field-kind-table table-struct))))))
 
       (let ((content (car (setf allocated-values (list (cffi:foreign-alloc '(:struct amqp-table-entry-t) :count length))))))
         (loop

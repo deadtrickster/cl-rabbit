@@ -291,6 +291,9 @@
          (class-id "class_id" :type uint16-t)
          (method-id "method_id" :type uint16-t))
 
+(cstruct amqp-connection-blocked-t "amqp_connection_blocked_t"
+         (reason "reason" :type (:struct amqp-bytes-t)))
+
 (cvar ("amqp_empty_table" amqp-empty-table) (:struct amqp-table-t))
 (cvar ("amqp_empty_bytes" amqp-empty-bytes) (:struct amqp-bytes-t))
 

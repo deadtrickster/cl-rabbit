@@ -223,14 +223,6 @@ or SSL-SOCKET-NEW."
   (check-type port alexandria:positive-integer)
   (verify-status (amqp-socket-open socket host port)))
 
-(defun update-product-name-in-table (table)
-  (append (list (cons "product" "cl-rabbit")
-                (cons "version" "0.1"))
-          (remove-if (lambda (name)
-                     (or (equal name "product")
-                         (equal name "version")))
-                   table :key #'car)))
-
 (defun login-sasl-plain (conn vhost user password
                          &key
                            (channel-max 0) (frame-max 131072) (heartbeat 0) properties)
@@ -264,7 +256,7 @@ PROPERTIES - a table of properties to send to the broker"
   (check-type user string)
   (check-type password string)
   (with-state (state conn)
-    (with-amqp-table (table (update-product-name-in-table properties))
+    (with-amqp-table (table properties)
       (cffi:with-foreign-objects ((native-table '(:struct amqp-table-t)))
         (setf (cffi:mem-ref native-table '(:struct amqp-table-t)) table)
         (let ((reply (amqp-login-sasl-plain-with-properties state vhost channel-max frame-max heartbeat native-table
@@ -370,6 +362,19 @@ that it is safe to release resources for the connection and close the socket."
      when (not (zerop (logand flags (fifth def))))
      collect (let ((value (getf props (second def))))
                (cons (first def)
+                     (ecase (third def)
+                       (:string (bytes->string value))
+                       (:integer value)
+                       (:table (amqp-table->lisp value))
+                       (:persistent (if (= 2 value) t)))))))
+
+(defun load-properties-to-plist (props)
+  (loop
+     with flags = (getf props 'flags)
+     for def in *props-mapping*
+     when (not (zerop (logand flags (fifth def))))
+     append (let ((value (getf props (second def))))
+               (list (first def)
                      (ecase (third def)
                        (:string (bytes->string value))
                        (:integer value)
