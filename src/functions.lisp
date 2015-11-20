@@ -34,6 +34,12 @@
 (cffi:defcfun ("amqp_get_channel_max" amqp-get-channel-max) :int
   (state amqp-connection-state-t))
 
+(cffi:defcfun ("amqp_get_frame_max" amqp-get-frame-max) :int
+  (state amqp-connection-state-t))
+
+(cffi:defcfun ("amqp_get_heartbeat" amqp-get-heartbeat) :int
+  (state amqp-connection-state-t))
+
 (cffi:defcfun ("amqp_destroy_connection" amqp-destroy-connection) :int
   (state amqp-connection-state-t))
 
@@ -64,6 +70,9 @@
   (sasl-method amqp-sasl-method-enum)
   (user :string)
   (password :string))
+
+(cffi:defcfun ("amqp_get_server_properties" amqp-get-server-properties) :pointer
+    (state amqp-connection-state-t))
 
 (cffi:defcfun ("amqp_login_with_properties" amqp-login-sasl-plain-with-properties) (:struct amqp-rpc-reply-t)
   (state amqp-connection-state-t)
