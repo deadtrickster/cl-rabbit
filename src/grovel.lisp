@@ -155,6 +155,16 @@
          (exchange "exchange" :type (:struct amqp-bytes-t))
          (routing-key "routing_key" :type (:struct amqp-bytes-t)))
 
+(cstruct amqp-basic-get-empty-t "amqp_basic_get_empty_t"
+         (cluster-id  "cluster_id" :type (:struct amqp-bytes-t)))
+
+(cstruct amqp-basic-get-ok-t "amqp_basic_get_ok_t"
+         (delivery-tag "delivery_tag" :type uint64-t)
+         (redelivered "redelivered" :type :boolean)
+         (exchange "exchange" :type (:struct amqp-bytes-t))
+         (routing-key "routing_key" :type (:struct amqp-bytes-t))
+         (message-count "message_count" :type uint32-t))
+
 (cstruct amqp-basic-return-t "amqp_basic_return_t"
          (reply_code  "reply_code" :type uint16-t)
          (reply-text "reply_text" :type (:struct amqp-bytes-t))
