@@ -54,6 +54,7 @@
 (defun bytes->string (bytes)
   (babel:octets-to-string (bytes->array bytes) :encoding :utf-8))
 
+
 (defmacro with-bytes-string ((symbol string) &body body)
   (alexandria:with-gensyms (fn value a string-sym)
     `(let ((,string-sym ,string))
@@ -167,13 +168,17 @@
              (,fn amqp-empty-table))))))
 
 (defun amqp-array->lisp (amqp-array)
-  (let ((array (vector)))
+  (let ((array (make-array (getf amqp-array 'num-entries))))
     (loop for i from 0 below (getf amqp-array 'num-entries)
           do (setf (aref array i)
-                   (amqp-field-value->lisp (cffi:mem-aref (getf amqp-array 'entries) '(:struct amqp-field-value-t) i))))))
+                   (amqp-field-value->lisp (cffi:mem-aref (getf amqp-array 'entries) '(:struct amqp-field-value-t) 0))))
+    array))
 
 (defun amqp-decimal->lisp (amqp-decimal)
   (/ (getf amqp-decimal 'value) (expt 10 (getf amqp-decimal 'decimals))))
+
+(defun amqp-timestamp->lisp (amqp-timestamp)
+  (local-time:unix-to-timestamp amqp-timestamp))
 
 (defun amqp-field-value->lisp (amqp-field-value)
   (let ((kind (cffi:foreign-enum-keyword 'amqp-field-value-kind-t (getf amqp-field-value 'kind))))
@@ -193,7 +198,8 @@
       (:amqp-field-kind-bytes (bytes->array (getf amqp-field-value 'value-bytes)))
       (:amqp-field-kind-table (amqp-table->lisp (getf amqp-field-value 'value-table)))
       (:amqp-field-kind-array (amqp-array->lisp (getf amqp-field-value 'value-array)))
-      (:amqp-field-kind-decimal (amqp-decimal->lisp (getf amqp-field-value 'value-array))))))
+      (:amqp-field-kind-decimal (amqp-decimal->lisp (getf amqp-field-value 'value-array)))
+      (:amqp-field-kind-timestamp (amqp-timestamp->lisp (getf amqp-field-value 'value-timestamp))))))
 
 (defun amqp-table-entry->lisp (table-entry)
   (let ((key (bytes->string (getf table-entry 'key))))
