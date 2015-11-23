@@ -10,7 +10,8 @@
                :cffi-libffi
                :alexandria
                :babel
-               :cl-ppcre)
+               :cl-ppcre
+               :local-time)
   :components ((:module src
                         :serial t
                         :components ((:file "package")
