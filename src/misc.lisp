@@ -152,7 +152,7 @@
                  (string (typed-value :amqp-field-kind-utf8 (string-native value)))
                  ((integer #.(- (expt 2 31)) #.(1- (expt 2 31))) (typed-value :amqp-field-kind-i32 value))
                  ((integer #.(- (expt 2 63)) #.(1- (expt 2 63))) (typed-value :amqp-field-kind-i64 value))
-                 (boolean (typed-value :amqp-field-kind-boolean (if t 1 0)))
+                 (boolean (typed-value :amqp-field-kind-boolean (if value 1 0)))
                  (void (void-value))
                  (wu-decimal:decimal (typed-value :amqp-field-kind-decimal (encode-decimal value)))
                  (single-float (typed-value :amqp-field-kind-f32 value))
@@ -205,7 +205,9 @@
 (defun amqp-field-value->lisp (amqp-field-value)
   (let ((kind (cffi:foreign-enum-keyword 'amqp-field-value-kind-t (getf amqp-field-value 'kind))))
     (ecase kind
-      (:amqp-field-kind-boolean (getf amqp-field-value 'value-boolean))
+      (:amqp-field-kind-boolean (if (= 0 (getf amqp-field-value 'value-boolean))
+                                    nil
+                                    t))
       (:amqp-field-kind-i8 (getf amqp-field-value 'value-i8))
       (:amqp-field-kind-u8 (getf amqp-field-value 'value-u8))
       (:amqp-field-kind-i16 (getf amqp-field-value 'value-i16))
