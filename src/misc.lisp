@@ -115,6 +115,11 @@
     (:amqp-field-kind-void . value-void)
     (:amqp-field-kind-bytes . value-bytes)))
 
+(deftype void ()
+  `(eql :void))
+
+(defun lisp-value->amqp-field (l))
+
 (defun create-amqp-table (values)
   (let ((length (length values))
         (allocated-values nil))
@@ -131,14 +136,22 @@
                    (error "Illegal kind: ~s" type))
                  (list 'kind (cffi:foreign-enum-value 'amqp-field-value-kind-t type) struct-entry-name value)))
 
+             (void-value ()
+               (list 'kind (cffi:foreign-enum-value 'amqp-field-value-kind-t :amqp-field-kind-void)))
+
              (make-field-value (value)
                (etypecase value
                  (string (typed-value :amqp-field-kind-utf8 (string-native value)))
                  ((integer #.(- (expt 2 31)) #.(1- (expt 2 31))) (typed-value :amqp-field-kind-i32 value))
+                 ((integer #.(- (expt 2 63)) #.(1- (expt 2 63))) (typed-value :amqp-field-kind-i64 value))
                  (boolean (typed-value :amqp-field-kind-boolean (if t 1 0)))
+                 (void (void-value))
+                 (single-float (typed-value :amqp-field-kind-f32 value))
+                 (double-float (typed-value :amqp-field-kind-f64 value))
+                 (local-time:timestamp (typed-value :amqp-field-kind-timestamp (local-time:timestamp-to-unix value)))
                  (list (multiple-value-bind (table-struct allocated-values%)
                            (create-amqp-table value)
-                         (setf allocated-values (append allocated-values allocated-values%))
+                         (nconc allocated-values allocated-values%)
                          (typed-value :amqp-field-kind-table table-struct))))))
 
       (let ((content (car (setf allocated-values (list (cffi:foreign-alloc '(:struct amqp-table-entry-t) :count length))))))
@@ -199,7 +212,8 @@
       (:amqp-field-kind-table (amqp-table->lisp (getf amqp-field-value 'value-table)))
       (:amqp-field-kind-array (amqp-array->lisp (getf amqp-field-value 'value-array)))
       (:amqp-field-kind-decimal (amqp-decimal->lisp (getf amqp-field-value 'value-array)))
-      (:amqp-field-kind-timestamp (amqp-timestamp->lisp (getf amqp-field-value 'value-timestamp))))))
+      (:amqp-field-kind-timestamp (amqp-timestamp->lisp (getf amqp-field-value 'value-timestamp)))
+      (:amqp-field-kind-void :void))))
 
 (defun amqp-table-entry->lisp (table-entry)
   (let ((key (bytes->string (getf table-entry 'key))))
