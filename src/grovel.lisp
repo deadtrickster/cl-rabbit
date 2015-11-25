@@ -171,6 +171,10 @@
          (exchange "exchange" :type (:struct amqp-bytes-t))
          (routing-key "routing_key" :type (:struct amqp-bytes-t)))
 
+(cstruct amqp-basic-cancel-t "amqp_basic_cancel_t"
+         (consumer-tag "consumer_tag" :type (:struct amqp-bytes-t))
+         (nowait "nowait" :type :boolean))
+
 (cstruct amqp-method-t "amqp_method_t"
          (id "id" :type amqp-method-number-t)
          (decoded "decoded" :type :pointer))
