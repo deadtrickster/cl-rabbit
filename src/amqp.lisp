@@ -348,7 +348,7 @@ that it is safe to release resources for the connection and close the socket."
     (:reply-to reply-to :string string ,+amqp-basic-reply-to-flag+)
     (:expiration expiration :string string ,+amqp-basic-expiration-flag+)
     (:message-id message-id :string string ,+amqp-basic-message-id-flag+)
-    (:timestamp timestamp :integer (unsigned-byte 8) ,+amqp-basic-timestamp-flag+)
+    (:timestamp timestamp :timestamp local-time:timestamp ,+amqp-basic-timestamp-flag+)
     (:type type :string string ,+amqp-basic-type-flag+)
     (:user-id user-id :string string ,+amqp-basic-user-id-flag+)
     (:app-id app-id :string string ,+amqp-basic-app-id-flag+)
@@ -366,7 +366,8 @@ that it is safe to release resources for the connection and close the socket."
                        (:string (bytes->string value))
                        (:integer value)
                        (:table (amqp-table->lisp value))
-                       (:persistent (if (= 2 value) t)))))))
+                       (:persistent (if (= 2 value) t))
+                       (:timestamp (local-time:unix-to-timestamp value)))))))
 
 (defun load-properties-to-plist (props)
   (loop
@@ -379,7 +380,8 @@ that it is safe to release resources for the connection and close the socket."
                        (:string (bytes->string value))
                        (:integer value)
                        (:table (amqp-table->lisp value))
-                       (:persistent (if (= 2 value) t)))))))
+                       (:persistent (if (= 2 value) t))
+                       (:timestamp (local-time:unix-to-timestamp value)))))))
 
 (defun fill-in-properties-alist (properties)
   (let ((allocated-values nil)
@@ -411,7 +413,8 @@ that it is safe to release resources for the connection and close the socket."
                                                 (:string (string-native value))
                                                 (:integer value)
                                                 (:table (field-table value))
-                                                (:persistent (if value 2 1)))))))
+                                                (:persistent (if value 2 1))
+                                                (:timestamp (local-time:timestamp-to-unix value)))))))
         (values (nconc (list 'flags flags) res)
                 allocated-values)))))
 
