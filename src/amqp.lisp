@@ -118,7 +118,7 @@
 (defmethod make-envelope-message ((value list))
   (make-instance 'message
                  :body (bytes->array (getf value 'body))
-                 :properties (load-properties-to-alist (getf value 'properties))))
+                 :properties (load-properties-to-plist (getf value 'properties))))
 
 (defmethod make-envelope-message (message)
   (assert (cffi:pointerp message))
@@ -126,7 +126,7 @@
            (cffi:foreign-slot-value message '(:struct amqp-message-t) slot-name)))
     (make-instance 'message
                    :body (bytes->array (getval 'body))
-                   :properties (load-properties-to-alist (getval 'properties)))))
+                   :properties (load-properties-to-plist (getval 'properties)))))
 
 (defclass envelope ()
   ((channel      :type integer
