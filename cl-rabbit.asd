@@ -11,7 +11,8 @@
                :alexandria
                :babel
                :cl-ppcre
-               :local-time)
+               :local-time
+               :wu-decimal)
   :components ((:module src
                         :serial t
                         :components ((:file "package")

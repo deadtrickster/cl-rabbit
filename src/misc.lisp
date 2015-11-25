@@ -130,6 +130,14 @@
                  (push ptr allocated-values)
                  (list 'len (array-dimension utf 0) 'bytes ptr)))
 
+             (encode-decimal (value)
+               (multiple-value-bind (c pow)
+                   (wu-decimal::find-multiplier (denominator value))
+                 (let ((v (* (numerator value) c)))
+                   (check-type v (integer #.(- (expt 2 31)) #.(1- (expt 2 31))))
+                   (list 'decimals pow
+                         'value v))))
+
              (typed-value (type value)
                (let ((struct-entry-name (cdr (assoc type *field-kind-types*))))
                  (unless struct-entry-name
@@ -146,6 +154,7 @@
                  ((integer #.(- (expt 2 63)) #.(1- (expt 2 63))) (typed-value :amqp-field-kind-i64 value))
                  (boolean (typed-value :amqp-field-kind-boolean (if t 1 0)))
                  (void (void-value))
+                 (wu-decimal:decimal (typed-value :amqp-field-kind-decimal (encode-decimal value)))
                  (single-float (typed-value :amqp-field-kind-f32 value))
                  (double-float (typed-value :amqp-field-kind-f64 value))
                  (local-time:timestamp (typed-value :amqp-field-kind-timestamp (local-time:timestamp-to-unix value)))
@@ -211,7 +220,7 @@
       (:amqp-field-kind-bytes (bytes->array (getf amqp-field-value 'value-bytes)))
       (:amqp-field-kind-table (amqp-table->lisp (getf amqp-field-value 'value-table)))
       (:amqp-field-kind-array (amqp-array->lisp (getf amqp-field-value 'value-array)))
-      (:amqp-field-kind-decimal (amqp-decimal->lisp (getf amqp-field-value 'value-array)))
+      (:amqp-field-kind-decimal (amqp-decimal->lisp (getf amqp-field-value 'value-decimal)))
       (:amqp-field-kind-timestamp (amqp-timestamp->lisp (getf amqp-field-value 'value-timestamp)))
       (:amqp-field-kind-void :void))))
 
