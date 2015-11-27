@@ -163,6 +163,25 @@
 (defun timestamp->amqp-field (value)
   (typed-value :amqp-field-kind-timestamp (local-time:timestamp-to-unix value)))
 
+(defun table->amqp-field (value)
+  (multiple-value-bind (table allocated) (table->amqp-table value)
+    (values (typed-value :amqp-field-kind-table table)
+            allocated)))
+
+(defun make-amqp-field (value)
+  (etypecase value
+    (string (string->amqp-field value))
+    ((integer #.(- (expt 2 31)) #.(1- (expt 2 31))) (i32->amqp-field value))
+    ((integer #.(- (expt 2 63)) #.(1- (expt 2 63))) (i64->amqp-field value))
+    (boolean (boolean->amqp-field value))
+    (void (void->amqp-field))
+    (wu-decimal:decimal (decimal->amqp-field value))
+    (single-float (float->amqp-field value))
+    (double-float (double->amqp-field value))
+    (local-time:timestamp (timestamp->amqp-field value))
+    (list (table->amqp-field value))
+    (vector (vector->amqp-array value))))
+
 (defun vector->amqp-array (values)
   (let ((length (length values))
         (allocated-values nil))
@@ -171,20 +190,9 @@
                (when allocated
                  (push allocated allocated-values)))
 
-             (make-field-value (value)
+             (make-field (value)
                (multiple-value-bind (field allocated)
-                   (etypecase value
-                     (string (string->amqp-field value))
-                     ((integer #.(- (expt 2 31)) #.(1- (expt 2 31))) (i32->amqp-field value))
-                     ((integer #.(- (expt 2 63)) #.(1- (expt 2 63))) (i64->amqp-field value))
-                     (boolean (boolean->amqp-field value))
-                     (void (void->amqp-field))
-                     (wu-decimal:decimal (decimal->amqp-field value))
-                     (single-float (float->amqp-field value))
-                     (double-float (double->amqp-field value))
-                     (local-time:timestamp (timestamp->amqp-field value))
-                     (list (table->amqp-field value))
-                     (vector (vector->amqp-array value)))
+                   (make-amqp-field value)
                  (add-to-allocated-values allocated)
                  field)))
 
@@ -193,14 +201,9 @@
           for value across values
           for i from 0
           do (setf (cffi:mem-aref content '(:struct amqp-field-value-t) i)
-                   (make-field-value value)))
+                   (make-field value)))
         (let ((content-struct (list 'num-entries length 'entries content)))
           (values (typed-value :amqp-field-kind-array content-struct) allocated-values))))))
-
-(defun table->amqp-field (value)
-  (multiple-value-bind (table allocated) (table->amqp-table value)
-    (values (typed-value :amqp-field-kind-table table)
-            allocated)))
 
 (defun table->amqp-table (values)
   (let ((length (length values))
@@ -216,20 +219,9 @@
                  (add-to-allocated-values allocated)
                  string))
 
-             (make-field-value (value)
+             (make-field (value)
                (multiple-value-bind (field allocated)
-                   (etypecase value
-                     (string (string->amqp-field value))
-                     ((integer #.(- (expt 2 31)) #.(1- (expt 2 31))) (i32->amqp-field value))
-                     ((integer #.(- (expt 2 63)) #.(1- (expt 2 63))) (i64->amqp-field value))
-                     (boolean (boolean->amqp-field value))
-                     (void (void->amqp-field))
-                     (wu-decimal:decimal (decimal->amqp-field value))
-                     (single-float (float->amqp-field value))
-                     (double-float (double->amqp-field value))
-                     (local-time:timestamp (timestamp->amqp-field value))
-                     (list (table->amqp-field value))
-                     (vector (vector->amqp-array value)))
+                   (make-amqp-field value)
                  (add-to-allocated-values allocated)
                  field)))
 
@@ -238,7 +230,7 @@
           for (key . value) in values
           for i from 0
           do (setf (cffi:mem-aref content '(:struct amqp-table-entry-t) i)
-                   (list 'key (table-key key) 'value (make-field-value value))))
+                   (list 'key (table-key key) 'value (make-field value))))
         (let ((content-struct (list 'num-entries length 'entries content)))
           (values content-struct allocated-values))))))
 
