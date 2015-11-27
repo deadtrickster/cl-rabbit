@@ -393,7 +393,7 @@ that it is safe to release resources for the connection and close the socket."
                  (list 'len (array-dimension utf 0) 'bytes ptr)))
              (field-table (values)
                (multiple-value-bind (table allocated)
-                   (create-amqp-table values)
+                   (table->amqp-table values)
                  (setq allocated-values (append allocated-values allocated))
                  table))
              (free-and-raise-error (fmt &rest params)
@@ -532,8 +532,7 @@ following property keywords are accepted:
                                    (progn
                                      (setf (cffi:mem-ref p '(:struct amqp-basic-properties-t)) props-list)
                                      (send-with-properties data p))
-                                (dolist (ptr allocated)
-                                  (cffi:foreign-free ptr)))))
+                                (free-allocations allocated))))
                           ;; ELSE: No content-properties argument
                           (send-with-properties data (cffi:null-pointer)))))
 
