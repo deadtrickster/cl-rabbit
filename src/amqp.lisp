@@ -213,7 +213,7 @@ CONN - the connection object
 CODE - the reason code for closing the connection. Defaults to AMQP_REPLY_SUCCESS."
   (check-type code (or null integer))
   (with-state (state conn)
-    (verify-rpc-framing-call state nil (amqp-connection-close state (or code +amqp-reply-success+)))))
+    (verify-rpc-reply state nil (amqp-connection-close state (or code +amqp-reply-success+)))))
 
 (defun socket-open (socket host port)
   "Open a socket connection.

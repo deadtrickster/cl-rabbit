@@ -30,6 +30,7 @@
            #:message/body
            #:message/properties
            #:new-connection
+           #:connection-close
            #:connection-close-ok
            #:queue-bind
            #:queue-declare
