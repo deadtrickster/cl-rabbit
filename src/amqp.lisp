@@ -202,6 +202,18 @@ Call CONNECTION-CLOSE to release socket resources."
   (with-state (state conn)
     (fail-if-null (amqp-tcp-socket-new state))))
 
+(defun ssl-socket-new (conn)
+  "Create a new SSL socket.
+Call CONNECTION-CLOSE to release socket resources."
+  (with-state (state conn)
+    (fail-if-null (amqp-ssl-socket-new state))))
+
+(defun ssl-socket-set-cacert (socket cafile)
+  (verify-status (amqp-ssl-socket-set-cacert socket cafile)))
+
+(defun ssl-socket-set-key (socket cert key)
+  (verify-status (amqp-ssl-socket-set-key socket cert key)))
+
 (defun connection-close (conn &key code)
   "Closes the entire connection.
 Implicitly closes all channels and informs the broker the connection

@@ -43,6 +43,7 @@
            #:rabbitmq-server-error
            #:socket-open
            #:tcp-socket-new
+           #:ssl-socket-new
            #:with-connection
            #:version
            #:queue-purge
